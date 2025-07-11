@@ -588,5 +588,72 @@ router.get('/filter-options', async (req, res) => {
   }
 });
 
+// Get all ring size options for a product
+router.get('/product-options/:productId', async (req, res) => {
+  try {
+    const productId = req.params.productId;
+    // Assuming ring size is always options_id = 2 (as in your screenshots)
+    const [options] = await pool.query(`
+      SELECT spo.value_id, spov.value_name, spo.options_symbol, spo.estimated_weight, spo.estimated_symbol, spo.options_price
+      FROM shop_products_to_options spo
+      JOIN shop_products_options_values spov ON spo.value_id = spov.value_id
+      WHERE spo.products_id = ? AND spo.options_id = 2
+      ORDER BY spov.sort_order ASC
+    `, [productId]);
+    console.log(`Product Options for ${productId}:`, options);
+    res.json(options);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+///store information
+router.get('/store-info', async (req, res) => {
+  try {
+    const [results] = await pool.query('SELECT * FROM admin_configuration WHERE configuration_group_id = 4');
+    // Convert array to object { STORE_PHONE: '+1...', STORE_EMAIL: '...' }
+    const config = {};
+    results.forEach(row => {
+      config[row.configuration_key] = row.configuration_value;
+    });
+    res.json(config);  // Now frontend can do store.STORE_PHONE etc.
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+///////Menu Tree Builder//
+
+function buildMenuTree(rows, parent = 0) {
+  return rows
+    .filter(row => row.category_navigation_parent_item === parent)
+    .map(row => ({
+      id: row.category_navigation_id,
+      page_title: row.category_navigation_title,
+      alias: row.category_navigation_alias,
+      page_link: row.page_link, // Construct this as needed
+      menu_type: row.menu_type,
+      icon: row.icon,
+      sub_title: row.sub_title,
+      image: row.category_navigation_image,
+      display_in_col: row.display_in_col,
+      sub_nav_col: row.sub_nav_col,
+      child: buildMenuTree(rows, row.category_navigation_id)
+    }));
+}
+
+
+/// Menu API ////
+router.get('/mega-menu', async (req, res) => {
+  try {
+    const [menuRows] = await pool.query("SELECT * FROM category_navigation WHERE status=1 and category_navigation_dislay_in = 2 ORDER BY category_navigation_sort_order ASC");
+    const menuTree = buildMenuTree(menuRows, 0);
+    res.json(menuTree);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 module.exports = router;
