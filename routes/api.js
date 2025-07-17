@@ -725,30 +725,30 @@ router.get('/setting-styles', async (req, res) => {
 // GET /api/shapes?stoneType=ID&design=ID&settingStyle=ID
 router.get('/shapesnew', async (req, res) => {
   try {
-    const { stoneType, design, settingStyle } = req.query;
-    if (!stoneType || !design || !settingStyle) return res.json([]);
+    const { stoneType, design } = req.query;
+    if (!stoneType || !design) return res.json([]);
+    // Example SQL: adjust table/columns if needed!
     const [results] = await pool.query(
       `SELECT dsm.id, dsm.name, dsm.image
        FROM diamond_shape_master dsm
        JOIN shop_products_to_shape pts ON dsm.id = pts.shape_id
        JOIN shop_products pm ON pm.products_id = pts.products_id
-       JOIN shop_products_to_stone_type sptst ON sptst.sptst_products_id = pm.products_id
-       JOIN shop_products_to_style_group sptsg ON sptsg.sptsg_products_id = pm.products_id
-       JOIN shop_products_to_style_category sptsc ON sptsc.sptsc_products_id = pm.products_id
+       JOIN shop_products_to_stone_type sptst ON pm.products_id = sptst.sptst_products_id
+       JOIN shop_products_to_style_group sptsg ON pm.products_id = sptsg.sptsg_products_id
        WHERE sptst.sptst_stone_type_id = ?
          AND sptsg.sptsg_style_category_id = ?
-         AND sptsc.sptsc_style_category_id = ?
          AND pm.products_quantity <> 0
          AND pm.product_image_status = 1
        GROUP BY dsm.id
-       ORDER BY dsm.sort_order ASC
-      `, [stoneType, design, settingStyle]
+       ORDER BY dsm.sort_order ASC`,
+      [stoneType, design]
     );
     res.json(results);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // GET /api/metals?stoneType=ID&design=ID&settingStyle=ID&shape=ID
 router.get('/metals', async (req, res) => {
