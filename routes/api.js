@@ -756,7 +756,7 @@ router.get('/metals', async (req, res) => {
     const { stoneType, design, settingStyle, shape } = req.query;
     if (!stoneType || !design || !settingStyle || !shape) return res.json([]);
     const [results] = await pool.query(
-      `SELECT dmt.dmt_id AS id, dmt.dmt_name AS name, dmt.color_code
+      `SELECT dmt.dmt_id AS id, dmt.dmt_name AS name, dmt.dmt_tooltip, dmt.color_code
        FROM diamond_metal_type dmt
        JOIN shop_products_to_metal_type sptmt ON sptmt.sptmt_metal_type_id = dmt.dmt_id
        JOIN shop_products pm ON pm.products_id = sptmt.sptmt_products_id
@@ -857,7 +857,8 @@ router.get('/productnew', async (req, res) => {
         dmt.dmt_name AS metal_name,
         psg.psg_name AS style_group_name,
         psc.psc_name AS style_category_name,
-        dsm.name AS diamond_shape_name
+        dsm.name AS diamond_shape_name,
+        pst.pst_description AS stone_type_name
       FROM shop_products pm
       LEFT JOIN shop_products_description pd ON pm.products_id = pd.products_id AND pd.language_id = 1
       LEFT JOIN shop_products_image pi ON pm.products_id = pi.products_id AND pi.image_type = 'image'
@@ -870,6 +871,7 @@ router.get('/productnew', async (req, res) => {
       LEFT JOIN shop_products_to_shape pts ON pm.products_id = pts.products_id
       LEFT JOIN diamond_shape_master dsm ON pts.shape_id = dsm.id
       LEFT JOIN shop_products_to_stone_type sptst ON pm.products_id = sptst.sptst_products_id
+      LEFT JOIN shop_products_stone_type pst ON sptst.sptst_stone_type_id = pst.pst_id
       LEFT JOIN shop_products_to_metal_type sptmt ON pm.products_id = sptmt.sptmt_products_id
       LEFT JOIN diamond_metal_type dmt ON sptmt.sptmt_metal_type_id = dmt.dmt_id
       WHERE pm.products_quantity <> 0
